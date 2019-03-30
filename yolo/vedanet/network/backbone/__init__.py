@@ -1,5 +1,6 @@
 from ._darknet19 import *
 from ._darknet53 import *
+from ._darknet53_spp import *
 from ._mobilenet import *
 from ._mobilenetv2 import *
 from ._tiny_yolov2 import *

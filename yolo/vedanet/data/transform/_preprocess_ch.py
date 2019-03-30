@@ -326,11 +326,11 @@ class RandomCropLetterbox(BaseMultiTransform):
         """ Change coordinates of an annotation, according to the previous crop """
         sx, sy, dx, dy, orig_w, orig_h, nwidth, nheight = self.crop_info
         
-        debug_img_crop = np.array(self.debug_img_crop)
-        debug_img_source = np.array(self.debug_img_source)
+        #debug_img_crop = np.array(self.debug_img_crop)
+        #debug_img_source = np.array(self.debug_img_source)
        
-        pro_dir = '/home/caspardu/shixuan/darknet_to_onedet/ObjectDetection-OneStageDet/yolo'
-        file_dir = 'outputs/Yolov3/baseline/debug_img'
+        #pro_dir = '/home/caspardu/shixuan/darknet_to_onedet/ObjectDetection-OneStageDet/yolo'
+        #file_dir = 'outputs/Yolov3/baseline/debug_img'
 
         for i in range(len(annos)-1, -1, -1):
             anno = annos[i] 
@@ -347,19 +347,19 @@ class RandomCropLetterbox(BaseMultiTransform):
                 del annos[i]
                 continue
 
-            cv2.rectangle(debug_img_source, (int(anno.x_top_left), int(anno.y_top_left)),
-                    (int(anno.x_top_left+anno.width), int(anno.y_top_left+anno.height)),(0,0,225),3)
+            #cv2.rectangle(debug_img_source, (int(anno.x_top_left), int(anno.y_top_left)),
+            #        (int(anno.x_top_left+anno.width), int(anno.y_top_left+anno.height)),(0,0,225),3)
             
             annos[i].x_top_left = int(x1*self.output_w)  
             annos[i].y_top_left = int(y1*self.output_h)
             annos[i].width = int(w)
             annos[i].height = int(h)
 
-            cv2.rectangle(debug_img_crop, (annos[i].x_top_left, annos[i].y_top_left),
-                (annos[i].x_top_left+annos[i].width, annos[i].y_top_left+annos[i].height),(0,0,255),3)
+            #cv2.rectangle(debug_img_crop, (annos[i].x_top_left, annos[i].y_top_left),
+            #    (annos[i].x_top_left+annos[i].width, annos[i].y_top_left+annos[i].height),(0,0,255),3)
          
-        cv2.imwrite(os.path.join(pro_dir,file_dir,'debug_img_crop.jpg'), debug_img_crop)
-        cv2.imwrite(os.path.join(pro_dir,file_dir,'debug_img_source.jpg'), debug_img_source)
+        #cv2.imwrite(os.path.join(pro_dir,file_dir,'debug_img_crop.jpg'), debug_img_crop)
+        #cv2.imwrite(os.path.join(pro_dir,file_dir,'debug_img_source.jpg'), debug_img_source)
 
         return annos
 

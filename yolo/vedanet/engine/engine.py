@@ -92,6 +92,8 @@ class Engine(ABC):
             loader = self.dataloader
             for idx, data in enumerate(loader):
                 # Forward and backward on (mini-)batches
+                #import ipdb
+                #ipdb.set_trace()
                 self.process_batch(data)
                 if (idx + 1) % self.batch_subdivisions != 0:
                     continue

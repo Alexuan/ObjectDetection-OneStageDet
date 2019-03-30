@@ -12,11 +12,9 @@ import collections
 import logging as log
 import torch
 import numpy as np
-from PIL import Image, ImageOps, ImageDraw
+from PIL import Image, ImageOps
 import brambox.boxes as bbb
 from .util import BaseTransform, BaseMultiTransform
-import os
-import cv2
 
 try:
     import cv2
@@ -283,84 +281,67 @@ class RandomCropLetterbox(BaseMultiTransform):
         self.output_w, self.output_h = self.dataset.input_dim
         #print('output shape: %d, %d' % (self.output_w, self.output_h))
         orig_w, orig_h = img.size
-        #print('input shape: %d, %d' % (orig_w, orig_h))
-        
-        # TODO
         img_np = np.array(img)
         channels = img_np.shape[2] if len(img_np.shape) > 2 else 1
-        
         dw = int(self.jitter * orig_w)
         dh = int(self.jitter * orig_h)
-        
-        pleft  = random.randint(-dw, dw)
-        pright = random.randint(-dw, dw)
-        ptop = random.randint(-dh, dh)
-        pbot = random.randint(-dh, dh)
+        new_ar = float(orig_w + random.randint(-dw, dw)) / (orig_h + random.randint(-dh, dh))
+        scale = random.random()*(2-0.25) + 0.25
+        if new_ar < 1:
+            nh = int(scale * orig_h)
+            nw = int(nh * new_ar)
+        else:
+            nw = int(scale * orig_w)
+            nh = int(nw / new_ar)
 
-        nwidth  = int(orig_w - pleft - pright)
-        nheight = int(orig_h - ptop - pbot)
-        assert nwidth > 0 and nheight > 0
-        #print('#################### nwidth:{}, nheight:{} #######################'.format(nwidth,nheight))
+        if self.output_w > nw:
+            dx = random.randint(0, self.output_w - nw)
+        else:
+            dx = random.randint(self.output_w - nw, 0)
 
-        sx = nwidth  / orig_w
-        sy = nheight / orig_h
+        if self.output_h > nh:
+            dy = random.randint(0, self.output_h - nh)
+        else:
+            dy = random.randint(self.output_h - nh, 0)
 
-        dx = (pleft  / orig_w) / sx
-        dy = (ptop / orig_h) / sy 
-
-        nxmin = pleft
-        nxmax = pleft+nwidth
-        nymin = ptop
-        nymax = ptop+nheight
-
-        orig_crop = img.crop((nxmin, nymin, nxmax, nymax))
-        orig_crop_resize = orig_crop.resize((self.output_w, self.output_h))
+        nxmin = max(0, -dx)
+        nymin = max(0, -dy)
+        nxmax = min(nw, -dx + self.output_w - 1)
+        nymax = min(nh, -dy + self.output_h - 1)
+        sx, sy = float(orig_w)/nw, float(orig_h)/nh
+        orig_xmin = int(nxmin * sx)
+        orig_ymin = int(nymin * sy)
+        orig_xmax = int(nxmax * sx)
+        orig_ymax = int(nymax * sy)
+        orig_crop = img.crop((orig_xmin, orig_ymin, orig_xmax, orig_ymax))
+        orig_crop_resize = orig_crop.resize((nxmax - nxmin, nymax - nymin))
         output_img = Image.new(img.mode, (self.output_w, self.output_h), color=(self.fill_color,)*channels)
         output_img.paste(orig_crop_resize, (0, 0))
-        self.crop_info = [1./sx, 1./sy, dx, dy, orig_w, orig_h, nwidth, nheight]
-        self.debug_img_crop = output_img
-        self.debug_img_source = img 
+        self.crop_info = [sx, sy, nxmin, nymin, nxmax, nymax]
         return output_img
 
     def _tf_anno(self, annos):
         """ Change coordinates of an annotation, according to the previous crop """
-        sx, sy, dx, dy, orig_w, orig_h, nwidth, nheight = self.crop_info
-        
-        debug_img_crop = np.array(self.debug_img_crop)
-        debug_img_source = np.array(self.debug_img_source)
-       
-        pro_dir = '/home/caspardu/shixuan/darknet_to_onedet/ObjectDetection-OneStageDet/yolo'
-        file_dir = 'outputs/Yolov3/baseline/debug_img'
-
+        sx, sy, crop_xmin, crop_ymin, crop_xmax, crop_ymax = self.crop_info
         for i in range(len(annos)-1, -1, -1):
-            anno = annos[i] 
-            
-            x1 = max(0, (anno.x_top_left/orig_w*sx - dx))
-            x2 = min(1, ((anno.x_top_left/orig_w+anno.width/orig_w)*sx - dx))
-            y1 = max(0, (anno.y_top_left/orig_h*sy - dy))
-            y2 = min(1, ((anno.y_top_left/orig_h+anno.height/orig_h)*sy - dy))
-            
-            w = (x2-x1)*self.output_w
-            h = (y2-y1)*self.output_h
-            
-            if w<=2 or h<=2 or (x1+x2)/2<0 or (x1+x2)/2>1 or (y1+y2)/2<0 or (y1+y2)/2>1: # or w*h/(anno.width*anno.height/sx/sy) <= 0.5:
+            anno = annos[i]
+            print('anno:{}'.format(anno.x_top_left))
+            x1 = max(crop_xmin, int(anno.x_top_left/sx))
+            x2 = min(crop_xmax, int((anno.x_top_left+anno.width)/sx))
+            y1 = max(crop_ymin, int(anno.y_top_left/sy))
+            y2 = min(crop_ymax, int((anno.y_top_left+anno.height)/sy))
+            w = x2-x1
+            h = y2-y1
+
+            if w <= 2 or h <= 2: # or w*h/(anno.width*anno.height/sx/sy) <= 0.5:
                 del annos[i]
                 continue
 
-            cv2.rectangle(debug_img_source, (int(anno.x_top_left), int(anno.y_top_left)),
-                    (int(anno.x_top_left+anno.width), int(anno.y_top_left+anno.height)),(0,0,225),3)
-            
-            annos[i].x_top_left = int(x1*self.output_w)  
-            annos[i].y_top_left = int(y1*self.output_h)
-            annos[i].width = int(w)
-            annos[i].height = int(h)
-
-            cv2.rectangle(debug_img_crop, (annos[i].x_top_left, annos[i].y_top_left),
-                (annos[i].x_top_left+annos[i].width, annos[i].y_top_left+annos[i].height),(0,0,255),3)
-         
-        cv2.imwrite(os.path.join(pro_dir,file_dir,'debug_img_crop.jpg'), debug_img_crop)
-        cv2.imwrite(os.path.join(pro_dir,file_dir,'debug_img_source.jpg'), debug_img_source)
-
+            annos[i].x_top_left = x1 - crop_xmin
+            annos[i].y_top_left = y1 -crop_ymin
+            annos[i].width = w
+            annos[i].height = h
+            print('annos:{}'.format(annos[i].x_top_left))
         return annos
 
 

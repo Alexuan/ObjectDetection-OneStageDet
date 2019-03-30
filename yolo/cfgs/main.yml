@@ -10,3 +10,4 @@ cfg_dict:
     RegionSqueezenext: region_squeezenext.yml
     RegionXception: region_xception.yml
     RegionLightXception: region_light_xception.yml
+    Yolov3_SPP: yolov3_spp.yml

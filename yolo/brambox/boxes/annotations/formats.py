@@ -10,6 +10,7 @@ from .pascalvoc import PascalVocParser
 from .pickle import PickleParser
 from .vatic import VaticParser
 from .yaml import YamlParser
+from .drink import DrinkParser
 
 __all__ = ['annotation_formats']
 
@@ -23,4 +24,5 @@ annotation_formats = {
     'pascalvoc': PascalVocParser,
     'vatic': VaticParser,
     'yaml': YamlParser,
+    'drink': DrinkParser,
 }

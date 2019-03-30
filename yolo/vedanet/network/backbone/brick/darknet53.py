@@ -55,6 +55,39 @@ class HeadBody(nn.Module):
         x = self.feature(data)
         return x
 
+class HeadBody_SPP(nn.Module):
+    custom_layers = ()
+    def __init__(self, nchannels, first_head=False):
+        super().__init__()
+        if first_head:
+            half_nchannels = int(nchannels/2)
+        else:
+            half_nchannels = int(nchannels/3)
+        in_nchannels = 2 * half_nchannels
+        layers_0 = [
+                vn_layer.Conv2dBatchLeaky(nchannels, half_nchannels, 1, 1),
+                vn_layer.Conv2dBatchLeaky(half_nchannels, in_nchannels, 3, 1),
+                vn_layer.Conv2dBatchLeaky(in_nchannels, half_nchannels, 1, 1)
+                ]
+        self.maxpool_0 = nn.MaxPool2d(5, stride=(1,1), padding=(2,2))
+        self.maxpool_1 = nn.MaxPool2d(9, stride=(1,1), padding=(4,4))
+        self.maxpool_2 = nn.MaxPool2d(13,stride=(1,1), padding=(6,6))
+        layers_1 = [
+                vn_layer.Conv2dBatchLeaky(half_nchannels*4,half_nchannels, 1, 1),
+                vn_layer.Conv2dBatchLeaky(half_nchannels, in_nchannels, 3, 1),
+                vn_layer.Conv2dBatchLeaky(in_nchannels, half_nchannels, 1, 1)
+                ]
+        self.feature_0 = nn.Sequential(*layers_0)
+        self.feature_1 = nn.Sequential(*layers_1)
+
+    def forward(self, data):
+        feature_0 = self.feature_0(data)
+        mp_0 = self.maxpool_0(feature_0)
+        mp_1 = self.maxpool_1(feature_0)
+        mp_2 = self.maxpool_2(feature_0)
+        feature_1 = torch.cat((feature_0, mp_0, mp_1, mp_2),1)
+        feature_1 = self.feature_1(feature_1)
+        return feature_1
 
 class Transition(nn.Module):
     custom_layers = ()

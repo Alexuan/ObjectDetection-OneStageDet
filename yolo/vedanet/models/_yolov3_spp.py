@@ -7,10 +7,10 @@ from .yolo_abc import YoloABC
 from ..network import backbone
 from ..network import head
 
-__all__ = ['Yolov3']
+__all__ = ['Yolov3_SPP']
 
 
-class Yolov3(YoloABC):
+class Yolov3_SPP(YoloABC):
     def __init__(self, num_classes=20, weights_file=None, input_channels=3,
                  anchors=[(10,13),  (16,30),  (33,23), (30,61), (62,45), (59,119), (116,90), (156,198), (373,326)],
                  anchors_mask=[(6,7,8), (3,4,5), (0,1,2)], train_flag=1, clear=False, test_args=None):
@@ -31,7 +31,7 @@ class Yolov3(YoloABC):
         num_anchors_list = [len(x) for x in anchors_mask]
         in_channels_list = [512, 256, 128]
 
-        self.backbone = backbone.Darknet53()
+        self.backbone = backbone.Darknet53_SPP()
         self.head = head.Yolov3(num_classes, in_channels_list, num_anchors_list)
 
         if weights_file is not None:

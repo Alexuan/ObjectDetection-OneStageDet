@@ -36,7 +36,7 @@ if __name__ == '__main__':
 
     # run eng
     b1 = eng.batch
-    t1 = time.time()
+    t1 = time.time() 
     eng()
     t2 = time.time()
     b2 = eng.batch

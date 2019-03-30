@@ -60,6 +60,8 @@ class YoloLoss(nn.modules.loss._Loss):
     def forward(self, output, target, seen=None):
         """ Compute Yolo loss.
         """
+        # import ipdb
+        # ipdb.set_trace()
         # Parameters
         nB = output.size(0)
         nA = self.num_anchors
